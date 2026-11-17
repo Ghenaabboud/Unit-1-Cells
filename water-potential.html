@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Water potential: osmosis in action</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:"Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --page:#F1F6F7; --panel:#FFFFFF; --ink:#0C2A38; --ink2:#496572; --line:#D0DDE3; --soft:#E3EDF1;
+  --stage1:#F4FAFC; --stage2:#D9ECF2; --edge:rgba(12,42,56,.12); --warn:#DF4F3E; --ok:#1E9C77;
+  color-scheme:light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --page:#081922; --panel:#0F2733; --ink:#E8F3F7; --ink2:#9DB5C0; --line:#23414E; --soft:#15313D;
+    --stage1:#123547; --stage2:#0A2532; --edge:rgba(232,243,247,.10); --warn:#F06C5A; --ok:#2CB88E;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --page:#081922; --panel:#0F2733; --ink:#E8F3F7; --ink2:#9DB5C0; --line:#23414E; --soft:#15313D;
+  --stage1:#123547; --stage2:#0A2532; --edge:rgba(232,243,247,.10); --warn:#F06C5A; --ok:#2CB88E;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;overflow:hidden;background:var(--page);color:var(--ink);font:400 15px/1.35 var(--font)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid #3462D6;outline-offset:2px}
+
+.app{height:100%;display:grid;gap:8px 12px;padding:10px 14px 12px;
+  grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-areas:"hd hd" "stage side" "why side"}
+.hd{grid-area:hd;display:flex;align-items:center;gap:14px;min-width:0}
+.hd h1{margin:0;font-size:1.35rem;line-height:1;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.tabs{display:flex;gap:4px;background:var(--soft);border-radius:12px;padding:3px;flex:1;max-width:560px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:9px;padding:7px 8px;font-weight:700;font-size:.92rem;line-height:1.1;white-space:nowrap;display:flex;gap:7px;align-items:center;justify-content:center}
+.tabs button i{font-style:normal;width:20px;height:20px;border-radius:50%;background:var(--panel);color:var(--ink);display:grid;place-items:center;font-size:.78rem;font-weight:800}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--page)}
+.prog{margin-left:auto;font-size:.86rem;color:var(--ink2);white-space:nowrap}
+.prog b{color:var(--ink);font-weight:800}
+
+.stage{grid-area:stage;position:relative;min-height:0;border-radius:18px;overflow:hidden;
+  background:radial-gradient(120% 95% at 28% 12%,var(--stage1),var(--stage2));box-shadow:inset 0 0 0 1.5px var(--edge)}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.why{grid-area:why;margin:0;padding:8px 14px;border-radius:12px;background:var(--ink);color:var(--page);font-size:.98rem;line-height:1.32;
+  height:calc(2.64em + 16px);overflow:hidden;display:flex;align-items:center}
+.why b{font-weight:800}
+
+.side{grid-area:side;min-height:0;display:flex;flex-direction:column;gap:8px}
+.grp{background:var(--panel);border-radius:14px;padding:9px 11px 10px;box-shadow:0 0 0 1px var(--line);min-width:0}
+.grp h2{margin:0 0 7px;font-size:.84rem;font-weight:800;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.grp h2 span{font-weight:400;color:var(--ink2)}
+.link{border:0;background:none;padding:0;font-weight:700;font-size:.8rem;text-decoration:underline;text-underline-offset:3px;color:var(--ink)}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tool{--c:#496572;display:flex;align-items:center;gap:8px;min-height:38px;padding:5px 9px;border-radius:10px;border:1.5px dashed var(--line);background:transparent;font-weight:700;font-size:.86rem;line-height:1.12;text-align:left}
+.tool i{flex:none;width:18px;height:18px;border-radius:6px;border:2px solid var(--c);display:grid;place-items:center;font-style:normal;font-size:.8rem;font-weight:800;color:var(--c);line-height:1}
+.tool[aria-pressed="true"]{border:1.5px solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel))}
+.tool[aria-pressed="true"] i{background:var(--c);color:#fff}
+.tool small{display:block;font-weight:400;font-size:.72rem;color:var(--ink2)}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:5px 11px;font-weight:700;font-size:.82rem;line-height:1.1}
+.opt[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--page)}
+.opt.act{border-style:solid;background:var(--soft)}
+.run{display:flex;gap:6px;align-items:center}
+.btn{min-height:36px;padding:5px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);font-weight:700;font-size:.86rem;white-space:nowrap}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:var(--page);min-width:74px}
+.spd{flex:1;display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--ink2);min-width:0}
+.spd input{flex:1;min-width:40px;accent-color:var(--ink)}
+.check{flex:1;min-height:0;overflow:hidden}
+.check ol{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.check li{display:flex;align-items:center;gap:8px;font-size:.86rem;color:var(--ink2)}
+.check li::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;border:2px solid var(--line)}
+.check li.done{color:var(--ink);font-weight:700}
+.check li.done::before{border-color:var(--ok);background:var(--ok);box-shadow:inset 0 0 0 2.5px var(--panel)}
+
+@media (max-height:720px) and (min-width:861px){
+  .app{gap:6px 10px;padding:6px 12px 8px}
+  .side{gap:6px}
+  .grp{padding:6px 10px 7px}
+  .grp h2{margin-bottom:5px}
+  .tool{min-height:32px;padding:3px 8px}
+  .tool small{display:none}
+  .check li{font-size:.8rem}
+  .check ol{gap:2px}
+}
+@media (max-width:860px){
+  body{font-size:14px}
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;grid-template-areas:"hd" "stage" "why" "side";gap:6px;padding:6px 8px 8px}
+  .hd{gap:8px}
+  .hd h1{display:none}
+  .tabs{max-width:none}
+  .tabs button{font-size:.8rem;padding:6px 2px;gap:4px}
+  .tabs button i{width:17px;height:17px;font-size:.7rem}
+  .prog{display:none}
+  .stage{border-radius:14px}
+  .why{font-size:.8rem;line-height:1.25;padding:5px 10px;height:calc(6.25em + 10px)}
+  .side{gap:6px}
+  .grp{padding:6px 8px 7px;border-radius:12px}
+  .grp h2{font-size:.78rem;margin-bottom:5px}
+  .tools{grid-template-columns:repeat(3,1fr);gap:5px}
+  .tool{min-height:36px;padding:3px 6px;font-size:.76rem;gap:5px}
+  .tool i{width:15px;height:15px;font-size:.7rem;border-radius:5px}
+  .tool small{display:none}
+  .opt{font-size:.76rem;padding:5px 9px}
+  .btn{min-height:34px;padding:4px 9px;font-size:.8rem}
+  .check{display:none}
+  .grp.g-opts h2{display:none}
+}
+.opts{align-items:center}
+.rng{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:700;flex:1 1 100%;white-space:nowrap}
+.rng b{font-weight:800;min-width:4.2em}
+.rng input{flex:1;min-width:60px;accent-color:var(--ink)}
+.opts .btn.pri{min-height:34px}
+@media (max-width:860px){.rng{font-size:.76rem}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hd">
+    <h1>Water potential</h1>
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-p="osm" aria-selected="true"><i>1</i>Osmosis</button>
+      <button role="tab" data-p="cell" aria-selected="false"><i>2</i>Cells</button>
+      <button role="tab" data-p="wp" aria-selected="false"><i>3</i>Water potential</button>
+    </div>
+    <div class="prog" id="prog"></div>
+  </header>
+  <section class="stage" aria-label="Simulation"><canvas id="cv" role="img" aria-label="Simulation of the selected process"></canvas></section>
+  <p class="why" id="why" aria-live="polite"></p>
+  <aside class="side">
+    <div class="grp">
+      <h2><span id="toolsTitle" style="font-weight:800;color:var(--ink)">Add a part</span><button class="link" id="all">Add everything</button></h2>
+      <div class="tools" id="tools"></div>
+    </div>
+    <div class="grp g-opts">
+      <h2>Change something</h2>
+      <div class="opts" id="opts"></div>
+    </div>
+    <div class="grp">
+      <div class="run">
+        <button class="btn pri" id="play">Pause</button>
+        
+        <button class="btn" id="reset">Restart</button>
+        <label class="spd">Speed<input id="speed" type="range" min="0.4" max="3" step="0.1" value="1" aria-label="Speed"></label>
+      </div>
+    </div>
+    <div class="grp check">
+      <h2>Key events</h2>
+      <ol id="check"></ol>
+    </div>
+  </aside>
+</div>
+<script>
+'use strict';
+const TOOLS = {
+  osm:[['mem','Partially permeable membrane','lets water through, not solute','#8A5BD1']],
+  cell:[['wall','Cell wall','strong and rigid, as in plants','#1E9C77'],['cv','Contractile vacuole','pumps excess water out','#3462D6']],
+  wp:[['vsol','Solutes in the vacuole','lower the solute potential','#C2327E'],['wall','Cell wall','lets pressure build up','#1E9C77']]
+};
+const TCOL = {}; Object.values(TOOLS).forEach(a=>a.forEach(t=>{ TCOL[t[0]] = t[3]; }));
+const S = {proc:'osm', playing:true, speed:1, tools:{}, nL:2, nR:8, ions:true, ext:.3, c:.2};
+Object.keys(TCOL).forEach(k=>{ S.tools[k] = false; });
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v)), rnd = (a,b)=>a+Math.random()*(b-a);
+const WAT = '#4A9CC4', NA = '#F08A24', CL = '#1E9C77', GLU = '#C2327E';
+let O, K, Q;
+
+/* ================= 1: osmosis ================= */
+function resetOsm(){ O = {f:.5, df:0, w:[], s:[], tm:0, xt:0, ev:{}}; for (let i=0;i<90;i++) O.w.push({L:i<45, u:Math.random(), v:Math.random()}); seedSol(); }
+function seedSol(){ O.s = []; for (let i=0;i<S.nL;i++) O.s.push({L:true, u:rnd(.12,.88), v:rnd(.12,.9), k:i%2}); for (let i=0;i<S.nR;i++) O.s.push({L:false, u:rnd(.12,.88), v:rnd(.12,.9), k:i%2}); }
+function stepOsm(dt){
+  const mem = S.tools.mem; O.tm += dt;
+  const nL = O.s.filter(q=>q.L).length, nR = O.s.length-nL, cL = nL/(2*O.f), cR = nR/(2*(1-O.f));
+  O.cL = cL; O.cR = cR;
+  O.df = mem ? .011*(cL-cR)+.02*(.5-O.f)*(nL+nR ? 0 : 1) : (.5-O.f)*1.2; O.f = clamp(O.f+O.df*dt,.2,.8);
+  if (O.s.length) O.ev.solv = true;
+  if (mem && Math.abs(O.df)>.004) O.ev.net = true; if (mem && Math.abs(O.f-.5)>.09) O.ev.lvl = true;
+  if (mem && O.s.length && Math.abs(cL-cR)<.07*Math.max(cL,cR)) O.ev.iso = true;
+  for (const q of O.s){ q.u = clamp(q.u+rnd(-1,1)*dt*.12,.08,.92); q.v = clamp(q.v+rnd(-1,1)*dt*.12,.1,.92);
+    if (!mem && Math.random()<dt*.35){ const frac = nL/(nL+nR||1); if (Math.random()<(q.L ? frac : 1-frac)){ q.L = !q.L; q.u = q.L ? .9 : .1; O.ev.nomem = true; } } }
+  for (const q of O.w){ q.u = clamp(q.u+rnd(-1,1)*dt*.5,.02,.98); q.v = clamp(q.v+rnd(-1,1)*dt*.5,.03,.97); }
+  O.xt += dt; if (O.xt>.12){ O.xt = 0; const want = Math.round(90*O.f), have = O.w.filter(q=>q.L).length;
+    const cross = toL => { const pool = O.w.filter(q=>q.L!==toL); if (!pool.length) return; const q = pool.sort((a,b)=>toL ? a.u-b.u : b.u-a.u)[Math.floor(rnd(0,Math.min(5,pool.length)))]; q.L = toL; q.u = toL ? .97 : .03; };
+    if (have<want) cross(true); else if (have>want) cross(false); else if (mem && Math.random()<.5){ cross(true); cross(false); } }
+}
+function whyOsm(){
+  const mem = S.tools.mem, n = O.s.length, d = (O.cL||0)-(O.cR||0), big = Math.max(O.cL||0,O.cR||0);
+  const solv = S.ions ? 'Each ion is surrounded by water molecules: the slightly negative oxygen faces Na⁺ and the slightly positive hydrogens face Cl⁻.' : 'Each glucose molecule is polar, so water molecules form hydrogen bonds with it.';
+  if (!mem && !n) return `<b>Pure water on both sides.</b> Set the amount of solute on each side, then add the partially permeable membrane.`;
+  if (!mem) return `<b>No membrane: the solute simply diffuses</b> until it is spread evenly, and the levels stay equal. ${solv} This is solvation. Add the membrane to see osmosis.`;
+  if (!n) return `<b>A partially permeable membrane with pure water on both sides.</b> Water molecules cross in both directions at the same rate, so nothing changes. Add solute to one side.`;
+  if (Math.abs(d)<.07*big) return `<b>Isotonic: dynamic equilibrium.</b> The two solutions now have the same solute concentration. Water molecules still cross the membrane, but equal numbers go each way, so there is no net movement.`;
+  const hi = d>0 ? 'left' : 'right', lo = d>0 ? 'right' : 'left';
+  return `<b>Osmosis.</b> The ${hi} side is hypertonic (more solute); the ${lo} side is hypotonic. The solute cannot cross, so there is a net movement of water from the hypotonic side to the hypertonic side. The level rises there until the concentrations match.`;
+}
+
+/* ================= 2: cells in solutions ================= */
+function resetCell(){ K = {V:1, J:0, burst:false, cvA:0, cvOut:0, tm:0, trace:[], ev:{}}; }
+function stepCell(dt){
+  const t = S.tools; K.tm += dt; if (K.burst){ K.trace.push({t:K.tm,V:0}); return; }
+  const cin = .3/K.V, P = t.wall ? Math.max(0,K.V-1)*2.2 : 0; let J = .9*(cin-S.ext-P);
+  K.cvOut = 0; if (t.cv && K.V>1.05 && J>0){ K.cvOut = J*.985; K.ev.cv = true; }
+  K.J = J; K.V = clamp(K.V+(J-K.cvOut)*dt*.5,.42,3); K.cvA += dt*(2+K.cvOut*30);
+  if (Math.abs(S.ext-.3)<.02 && Math.abs(K.V-1)<.03) K.ev.iso = true;
+  if (J>.03 && S.ext<.27) K.ev.hypo = true;
+  if (!t.wall && K.V>1.55){ K.burst = true; K.ev.burst = true; }
+  if (!t.wall && K.V<.8) K.ev.cren = true;
+  if (t.wall && K.V>1.07) K.ev.turg = true; if (t.wall && K.V<.9) K.ev.plas = true;
+  K.trace.push({t:K.tm,V:K.V}); while (K.trace.length && K.trace[0].t<K.tm-14) K.trace.shift();
+}
+const cellKind = () => S.tools.wall ? 'plant cell' : S.tools.cv ? 'freshwater unicellular organism' : 'animal cell';
+function cellState(){ const t = S.tools; if (K.burst) return 'burst (cytolysis)'; if (t.wall) return K.V>1.07 ? 'turgid' : K.V<.9 ? 'plasmolysed' : 'flaccid'; return K.V>1.2 ? 'swollen' : K.V<.8 ? 'crenated' : 'normal'; }
+function whyCell(){
+  const t = S.tools, e = S.ext, hypo = e<.27, hyper = e>.33;
+  if (K.burst) return `<b>Cytolysis.</b> The solution outside was hypotonic, so water kept entering by osmosis. With no cell wall to resist, the plasma membrane stretched until it burst. Press Restart for a new cell, then try a cell wall or a contractile vacuole.`;
+  if (!hypo && !hyper) return `<b>Isotonic.</b> Solute concentration is the same inside and out. Water enters and leaves at equal rates: dynamic equilibrium, no net change. ${t.wall ? 'A plant cell here is flaccid: not enough pressure to be turgid.' : 'This is why intravenous fluids and the solutions used to carry transplant organs are isotonic.'}`;
+  if (hypo){
+    if (t.wall) return `<b>Turgid.</b> Water enters the vacuole, which pushes the cytoplasm and membrane against the cell wall. This turgor pressure rises until the wall pushes back equally and no more water can enter. The wall stops the cell bursting, and turgor supports the plant.`;
+    if (t.cv) return `<b>Osmoregulation.</b> Water keeps entering by osmosis, but the contractile vacuole collects it and pumps it out, so the cell does not burst. Freshwater unicellular organisms such as Paramecium depend on this.`;
+    return `<b>Hypotonic outside: water is entering.</b> The cytoplasm is hypertonic to the solution, so there is a net movement of water into the cell. It has no cell wall, so it swells.`;
+  }
+  if (t.wall) return K.V<.9 ? `<b>Plasmolysis.</b> Water has left by osmosis. The vacuole and cytoplasm have shrunk and the plasma membrane has pulled away from the cell wall. If it stays like this the cell dies.` : `<b>Hypertonic outside: water is leaving.</b> Turgor pressure falls and the cell becomes flaccid.`;
+  return K.V<.8 ? `<b>Crenation.</b> The solution outside is hypertonic, so water left the cell by osmosis and it has shrunk. Cells in a multicellular organism need isotonic tissue fluid to avoid this.` : `<b>Hypertonic outside: water is leaving</b> the cell by osmosis, and it is shrinking.`;
+}
+
+/* ================= 3: water potential ================= */
+function resetWp(){ Q = {V:1, pts:[], tm:0, ev:{}}; }
+const psiOut = c => -2440*c;
+function psi(V){ const t = S.tools, s = t.vsol ? -900/V : 0, p = t.wall ? Math.max(0,(V-1)*6000) : 0; return {s, p, w:s+p}; }
+function stepWp(dt){
+  Q.tm += dt; const a = psi(Q.V), out = psiOut(S.c), d = out-a.w;
+  Q.d = d; Q.V = clamp(Q.V+d*.00035*dt,.45,1.5);
+  if (S.tools.vsol) Q.ev.sol = true; if (Math.abs(d)>60) Q.ev.move = true; if (a.p>150) Q.ev.pp = true;
+  if (Math.abs(d)<15 && Q.V>.46 && Q.V<1.49 && Q.tm>2) Q.ev.eq = true; if (S.tools.wall && Q.V<.9) Q.ev.plas = true;
+}
+function eqV(c){ let V = 1; for (let k=0;k<4000;k++) V = clamp(V+(psiOut(c)-psi(V).w)*.00002,.45,1.5); return V; }
+const massPct = V => V>=1 ? (V-1)*100 : (V-1)*45;
+function record(){ const V = eqV(S.c), m = massPct(V), reps = [0,1,2,3,4].map(()=>m+rnd(-1,1)*1.4), mean = reps.reduce((a,b)=>a+b)/5, sd = Math.sqrt(reps.reduce((a,b)=>a+(b-mean)**2,0)/4);
+  Q.pts = Q.pts.filter(p=>Math.abs(p.c-S.c)>.001); Q.pts.push({c:S.c, m:mean, se:sd/Math.sqrt(5)}); Q.pts.sort((a,b)=>a.c-b.c); if (Q.pts.length>=5) Q.ev.five = true; if (fit()) Q.ev.isot = true; }
+function fit(){ const p = Q.pts; for (let i=0;i<p.length-1;i++) if (p[i].m>0 && p[i+1].m<=0) return {x0:p[i].c+(p[i+1].c-p[i].c)*p[i].m/(p[i].m-p[i+1].m)}; return null; }
+function whyWp(){
+  const t = S.tools, a = psi(Q.V), out = psiOut(S.c), d = out-a.w, f = fit();
+  if (!t.vsol && !t.wall) return `<b>Water potential (ψ) is the potential energy of water per unit volume,</b> measured in kPa relative to pure water, which is 0. Add solutes to the vacuole and a cell wall, then change the solution outside.`;
+  if (Math.abs(d)<15){
+    if (!t.wall && Q.V>=1.49) return `<b>Still taking in water.</b> With no cell wall there is no pressure potential, so the cell’s water potential can never rise to match pure water. An animal cell would burst. Add the cell wall.`;
+    return `<b>Equilibrium: ψ inside = ψ outside (${Math.round(out)} kPa).</b> ψw = ψs + ψp = ${Math.round(a.s)} + ${Math.round(a.p)}. ${a.p>50 ? 'The positive pressure potential from the cell wall balances the negative solute potential.' : 'There is no pressure potential: the membrane is not pressing on the wall.'}${f ? ` Your results cross zero at about ${f.x0.toFixed(2)} mol dm⁻³: the isotonic concentration.` : ' Record this result, then try other concentrations: the isotonic point is where the mass change crosses zero.'}`;
+  }
+  if (d>0) return `<b>Water moves in: from higher ψ outside (${Math.round(out)} kPa) to lower ψ inside (${Math.round(a.w)} kPa).</b> As the cell fills, its solutes are diluted (ψs rises a little)${t.wall ? ' and the contents press on the wall, so the pressure potential ψp rises' : ''}.`;
+  return `<b>Water moves out: from higher ψ inside (${Math.round(a.w)} kPa) to lower ψ outside (${Math.round(out)} kPa).</b> Adding solute lowers a solution’s solute potential. As the cell loses water, its pressure potential falls${a.p<1 ? ' to zero and the membrane pulls away from the wall' : ''}.`;
+}
+
+/* ================= drawing ================= */
+const cv = document.getElementById('cv'), c = cv.getContext('2d');
+let W = 0, H = 0, dpr = 1, TH = {}, font = 'sans-serif';
+function theme(){ const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
+  TH = {ink:g('--ink'), ink2:g('--ink2'), panel:g('--panel'), page:g('--page'), line:g('--line'), warn:g('--warn'), ok:g('--ok')}; TH.dark = parseInt(TH.page.slice(1,3),16)<80;
+  TH.water = TH.dark ? 'rgba(74,156,196,.28)' : 'rgba(74,156,196,.22)'; TH.cyto = TH.dark ? '#2E6A55' : '#CFEBD9'; TH.acyto = TH.dark ? '#7A3A44' : '#F4C9C4'; TH.vac = TH.dark ? '#36507E' : '#CBD9F4'; font = getComputedStyle(document.body).fontFamily; }
+function rr(x,y,w,h,r){ c.beginPath(); if (c.roundRect) c.roundRect(x,y,w,h,r); else c.rect(x,y,w,h); }
+function text(s,x,y,o){ o = o||{}; c.font = `${o.w||700} ${o.s||12}px ${font}`; c.textAlign = o.al||'center'; c.textBaseline = o.bl||'middle';
+  if (o.halo!==false){ c.lineWidth = 3.5; c.strokeStyle = TH.dark ? 'rgba(10,37,50,.9)' : 'rgba(240,248,251,.92)'; c.strokeText(s,x,y); } c.fillStyle = o.c||TH.ink; c.fillText(s,x,y); }
+const FS = () => clamp(W/62,10,13.5);
+function h2o(x,y,r,ang){ c.fillStyle = TH.dark ? '#D5EEF6' : '#fff'; c.strokeStyle = WAT; c.lineWidth = 1; for (const d of [-.9,.9]){ c.beginPath(); c.arc(x+Math.cos(ang+d)*r*1.25,y+Math.sin(ang+d)*r*1.25,r*.6,0,6.3); c.fill(); c.stroke(); } c.fillStyle = WAT; c.beginPath(); c.arc(x,y,r,0,6.3); c.fill(); }
+function arrow(x0,y0,x1,y1,col,lw){ const a = Math.atan2(y1-y0,x1-x0), h = lw*2.6+4; c.strokeStyle = col; c.fillStyle = col; c.lineWidth = lw; c.lineCap = 'round'; c.beginPath(); c.moveTo(x0,y0); c.lineTo(x1-Math.cos(a)*h*.7,y1-Math.sin(a)*h*.7); c.stroke();
+  c.beginPath(); c.moveTo(x1,y1); c.lineTo(x1-Math.cos(a-.45)*h,y1-Math.sin(a-.45)*h); c.lineTo(x1-Math.cos(a+.45)*h,y1-Math.sin(a+.45)*h); c.closePath(); c.fill(); }
+
+function drawOsm(){
+  const fs = FS(), x0 = W*.07, x1 = W*.93, y0 = H*.2, y1 = H*.9, xm = (x0+x1)/2, mem = S.tools.mem, hw = xm-x0, th = y1-y0;
+  const lvl = f => y1-th*clamp(.3+.55*(f/.5),.25,.98), yL = lvl(O.f), yR = lvl(1-O.f), r = clamp(W*.006,3.2,6);
+  c.fillStyle = TH.water; c.fillRect(x0,yL,hw,y1-yL); c.fillRect(xm,yR,hw,y1-yR);
+  c.strokeStyle = TH.ink; c.lineWidth = 3; c.beginPath(); c.moveTo(x0,y0); c.lineTo(x0,y1); c.lineTo(x1,y1); c.lineTo(x1,y0); c.stroke();
+  if (mem){ c.strokeStyle = TCOL.mem; c.lineWidth = 5; c.setLineDash([10,7]); c.beginPath(); c.moveTo(xm,y0); c.lineTo(xm,y1); c.stroke(); c.setLineDash([]); text('partially permeable membrane',xm,y0-fs*.9,{s:fs,c:TCOL.mem}); }
+  const P = (q,side) => { const yT = side ? yL : yR; return [(side ? x0 : xm)+6+q.u*(hw-12), yT+8+q.v*(y1-yT-16)]; };
+  O.w.forEach((q,i)=>{ const p = P(q,q.L); h2o(p[0],p[1],r,i*1.7+O.tm*.6); });
+  O.s.forEach((q,i)=>{ const p = P(q,q.L), R2 = r*2.3, ion = S.ions, col = ion ? (q.k ? CL : NA) : GLU;
+    for (let k=0;k<5;k++){ const a = k/5*6.283+O.tm*.25+i, wx = p[0]+Math.cos(a)*R2*1.95, wy = p[1]+Math.sin(a)*R2*1.95;
+      if (!ion){ c.strokeStyle = WAT; c.setLineDash([2,3]); c.lineWidth = 1.2; c.beginPath(); c.moveTo(p[0]+Math.cos(a)*R2,p[1]+Math.sin(a)*R2); c.lineTo(wx,wy); c.stroke(); c.setLineDash([]); }
+      h2o(wx,wy,r*.85, ion ? (q.k ? a+Math.PI : a) : a+k); }
+    c.fillStyle = col; c.beginPath(); if (ion) c.arc(p[0],p[1],R2,0,6.3); else for (let k=0;k<6;k++) c[k?'lineTo':'moveTo'](p[0]+Math.cos(k*1.047)*R2*1.1,p[1]+Math.sin(k*1.047)*R2*1.1); c.fill(); c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1; c.stroke();
+    if (R2>=8) text(ion ? (q.k ? 'Cl⁻' : 'Na⁺') : 'glu',p[0],p[1],{s:R2*.78,c:'#fff',halo:false}); });
+  const d = (O.cL||0)-(O.cR||0), big = Math.max(O.cL||0,O.cR||0), iso = Math.abs(d)<.07*big || !big;
+  const lab = side => !mem || !O.s.length ? '' : iso ? 'isotonic' : ((side ? d>0 : d<0) ? 'hypertonic' : 'hypotonic');
+  text(lab(true),x0+hw/2,Math.min(yL,yR)-fs*1.2,{s:fs*1.25}); text(lab(false),xm+hw/2,Math.min(yL,yR)-fs*1.2,{s:fs*1.25});
+  if (mem){ const net = O.df, ya = y1-th*.14; arrow(xm-fs*2.4,ya-fs*.9,xm+fs*2.4,ya-fs*.9,WAT,2+clamp(-net*120,0,6)); arrow(xm+fs*2.4,ya+fs*.9,xm-fs*2.4,ya+fs*.9,WAT,2+clamp(net*120,0,6));
+    text(iso ? 'equal both ways' : 'net movement of water '+(net>0 ? '←' : '→'), xm, ya+fs*2.6, {s:fs, c:TH.ink}); }
+  text('solute concentration: '+(O.cL||0).toFixed(1),x0+hw/2,y1+fs*1.1,{s:fs,c:TH.ink2,w:500}); text('solute concentration: '+(O.cR||0).toFixed(1),xm+hw/2,y1+fs*1.1,{s:fs,c:TH.ink2,w:500});
+}
+function plantCell(cx,cy,w,h,V,wall,vsol,press){
+  const fs = FS();
+  if (wall){ c.fillStyle = TH.water; rr(cx-w/2,cy-h/2,w,h,w*.08); c.fill(); c.strokeStyle = TCOL.wall; c.lineWidth = Math.max(5,w*.035); c.stroke(); }
+  const s = wall ? Math.min(1,Math.sqrt(V)) : Math.sqrt(V), iw = (w-(wall ? w*.07 : 0))*s, ih = (h-(wall ? w*.07 : 0))*s, rad = wall && V>=1 ? w*.06 : Math.min(iw,ih)*.3;
+  c.fillStyle = TH.cyto; rr(cx-iw/2,cy-ih/2,iw,ih,rad); c.fill(); c.strokeStyle = TH.dark ? '#9AD7B9' : '#2F7D5B'; c.lineWidth = 2; c.stroke();
+  c.fillStyle = TH.vac; rr(cx-iw*.36,cy-ih*.34,iw*.72,ih*.68,Math.min(iw,ih)*.2); c.fill(); c.strokeStyle = TH.dark ? '#8FA9DC' : '#5C79B8'; c.lineWidth = 1.5; c.stroke();
+  if (vsol) for (let k=0;k<12;k++){ c.fillStyle = GLU; c.beginPath(); c.arc(cx+Math.cos(k*2.4)*iw*.26*((k%3+1)/3),cy+Math.sin(k*2.4)*ih*.24*((k%4+1)/4),Math.max(2.5,w*.012),0,6.3); c.fill(); }
+  for (let k=0;k<6;k++){ c.fillStyle = TH.ok; c.beginPath(); c.ellipse(cx+Math.cos(k*1.05+.5)*iw*.43,cy+Math.sin(k*1.05+.5)*ih*.42,w*.022,w*.013,k,0,6.3); c.fill(); }
+  if (press>0 && wall) for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const L = clamp(press,0,1)*w*.09+4; arrow(cx+dx*(w*.36),cy+dy*(h*.33),cx+dx*(w*.36+L),cy+dy*(h*.33+L),TH.warn,2.5); }
+  if (wall && V<.9) text('membrane pulled away from the wall',cx,cy+h/2+fs*1.2,{s:fs,c:TH.warn});
+}
+function drawCell(){
+  const fs = FS(), nar = W<620, t = S.tools, cx = nar ? W*.5 : W*.36, cy = nar ? H*.36 : H*.5, bw = nar ? W*.9 : W*.62, bh = nar ? H*.6 : H*.8, R0 = Math.min(bw,bh)*.21;
+  c.fillStyle = TH.water; rr(cx-bw/2,cy-bh/2,bw,bh,18); c.fill();
+  const nd = Math.round(S.ext*130); for (let k=0;k<nd;k++){ const x = cx-bw/2+10+((k*73)%100)/100*(bw-20)+Math.sin(K.tm*.7+k)*4, y = cy-bh/2+10+((k*37+11)%100)/100*(bh-20)+Math.cos(K.tm*.6+k*2)*4; c.fillStyle = k%2 ? CL : NA; c.beginPath(); c.arc(x,y,Math.max(2.4,W*.004),0,6.3); c.fill(); }
+  text(S.ext<.27 ? 'hypotonic solution' : S.ext>.33 ? 'hypertonic solution' : 'isotonic solution',cx-bw/2+12,cy-bh/2+fs*1.3,{s:fs*1.15,al:'left'});
+  if (K.burst){ for (let k=0;k<10;k++){ const a = k*.63, d = R0*(1.5+((k*7)%5)*.14); c.strokeStyle = TH.warn; c.lineWidth = 3; c.beginPath(); c.arc(cx+Math.cos(a)*d*.5,cy+Math.sin(a)*d*.5,R0*.5,a-.5,a+.5); c.stroke(); } text('burst: cytolysis',cx,cy,{s:fs*1.5,c:TH.warn}); }
+  else if (t.wall){ plantCell(cx,cy,R0*3.1,R0*2.3,K.V,true,true,(K.V-1)*8); }
+  else { const r = R0*Math.sqrt(K.V), cren = K.V<.8; c.fillStyle = TH.acyto; c.strokeStyle = TH.warn; c.lineWidth = 2.5; c.beginPath();
+    for (let k=0;k<=72;k++){ const a = k/72*6.283, rr2 = r*(1+(cren ? .11*Math.sin(a*11) : 0)+(K.V>1.2 ? 0 : .012*Math.sin(a*3+K.tm))); c[k?'lineTo':'moveTo'](cx+Math.cos(a)*rr2,cy+Math.sin(a)*rr2); } c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = TH.dark ? '#5A2630' : '#E3A49D'; c.beginPath(); c.arc(cx-r*.2,cy-r*.1,r*.3,0,6.3); c.fill();
+    if (t.cv){ const p = (K.cvA%1), vr = r*(.12+.14*(K.cvOut>0 ? p : .2)), vx = cx+r*.48, vy = cy+r*.3; c.fillStyle = TH.vac; c.strokeStyle = TCOL.cv; c.lineWidth = 2; for (let k=0;k<6;k++){ c.beginPath(); c.moveTo(vx,vy); c.lineTo(vx+Math.cos(k*1.047)*vr*1.9,vy+Math.sin(k*1.047)*vr*1.9); c.stroke(); } c.beginPath(); c.arc(vx,vy,vr,0,6.3); c.fill(); c.stroke();
+      if (K.cvOut>0 && p>.8) arrow(vx+vr,vy+vr,vx+r*.75,vy+r*.75,TCOL.cv,3); text('contractile vacuole',vx,vy+r*.75+fs,{s:fs*.9,c:TCOL.cv}); } }
+  if (!K.burst){ const net = K.J-K.cvOut, rIn = (t.wall ? R0*1.75 : R0*Math.sqrt(K.V)+R0*.75), base = 2.2;
+    arrow(cx-rIn-R0*.2,cy-fs,cx-rIn+R0*.5,cy-fs,WAT,base+clamp(K.J*14,0,7)); arrow(cx-rIn+R0*.5,cy+fs,cx-rIn-R0*.2,cy+fs,WAT,base+clamp(-K.J*14,0,7));
+    text('water',cx-rIn-R0*.2,cy-fs*2.6,{s:fs,c:WAT,al:'left'}); }
+  text(cellKind()+': '+cellState(),cx,cy+bh/2-fs*1.3,{s:fs*1.2});
+  /* volume trace */
+  const gx = nar ? W*.16 : W*.74, gy = nar ? H*.74 : H*.2, gw = nar ? W*.76 : W*.22, gh = nar ? H*.17 : H*.5, Yv = v => gy+gh-clamp(v,0,1.7)/1.7*gh;
+  c.fillStyle = TH.dark ? 'rgba(0,0,0,.28)' : 'rgba(255,255,255,.7)'; rr(gx-fs*3,gy-fs*1.8,gw+fs*3.6,gh+fs*3.2,12); c.fill();
+  text('Cell volume',gx+gw/2,gy-fs*.8,{s:fs,halo:false}); c.strokeStyle = TH.line; c.lineWidth = 1; c.setLineDash([4,4]); c.beginPath(); c.moveTo(gx,Yv(1)); c.lineTo(gx+gw,Yv(1)); c.stroke(); c.setLineDash([]); text('normal',gx-4,Yv(1),{s:fs*.85,al:'right',c:TH.ink2,w:500,halo:false});
+  c.strokeStyle = TH.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(gx,gy); c.lineTo(gx,gy+gh); c.lineTo(gx+gw,gy+gh); c.stroke();
+  if (K.trace.length>1){ c.beginPath(); K.trace.forEach((p,k)=>c[k?'lineTo':'moveTo'](gx+gw-(K.tm-p.t)/14*gw,Yv(p.V))); c.strokeStyle = WAT; c.lineWidth = 3; c.stroke(); text(Math.round(K.V*100*(K.burst ? 0 : 1))+'%',gx+gw,Yv(K.burst ? 0 : K.V)-fs,{s:fs*1.2,al:'right'}); }
+}
+function drawWp(){
+  const fs = FS(), nar = W<620, t = S.tools, a = psi(Q.V), out = psiOut(S.c);
+  const cx = nar ? W*.27 : W*.2, cy = nar ? H*.27 : H*.45, cw = nar ? W*.44 : W*.3, ch = cw*.74;
+  c.fillStyle = TH.water; rr(cx-cw*.62,cy-ch*.72,cw*1.24,ch*1.44,14); c.fill();
+  const nd = Math.round(S.c*60); for (let k=0;k<nd;k++){ const x = cx-cw*.6+((k*73)%100)/100*cw*1.2, y = cy-ch*.7+((k*37+11)%100)/100*ch*1.4; if (Math.abs(x-cx)<cw*.52 && Math.abs(y-cy)<ch*.52) continue; c.fillStyle = GLU; c.beginPath(); c.arc(x,y,3,0,6.3); c.fill(); }
+  if (t.wall) plantCell(cx,cy,cw,ch,Q.V,true,t.vsol,a.p/900); else plantCell(cx,cy,cw*.84,ch*.84,Q.V,false,t.vsol,0);
+  const d = out-a.w; if (Math.abs(d)>15){ const lw = 2.5+clamp(Math.abs(d)/300,0,5), xa = cx+cw*.62; d>0 ? arrow(xa+fs*.5,cy,xa-cw*.16,cy,WAT,lw) : arrow(xa-cw*.16,cy,xa+fs*.5,cy,WAT,lw); }
+  text('solution: ψ = '+Math.round(out)+' kPa',cx,cy-ch*.72-fs,{s:fs,c:TH.ink2});
+  /* bars */
+  const bx = nar ? W*.56 : W*.42, by = nar ? H*.06 : H*.14, bw = nar ? W*.4 : W*.2, bh = nar ? H*.4 : H*.62, Y = v => by+bh*(1000-v)/3400, col = {s:GLU, p:TCOL.wall, w:WAT};
+  c.strokeStyle = TH.line; c.lineWidth = 1; for (const v of [1000,0,-1000,-2000]){ c.beginPath(); c.moveTo(bx,Y(v)); c.lineTo(bx+bw,Y(v)); c.stroke(); text(String(v),bx-4,Y(v),{s:fs*.85,al:'right',c:TH.ink2,w:500,halo:false}); }
+  c.strokeStyle = TH.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(bx,Y(0)); c.lineTo(bx+bw,Y(0)); c.stroke(); text('kPa',bx-4,by-fs,{s:fs*.85,al:'right',c:TH.ink2,w:500,halo:false});
+  const bars = [['ψs',a.s,col.s],['ψp',a.p,col.p],['ψw cell',a.w,col.w],['ψ outside',out,TH.ink2]], sw = bw/4;
+  bars.forEach((b,k)=>{ const x = bx+k*sw+sw*.16; c.fillStyle = b[2]; c.fillRect(x,Math.min(Y(0),Y(b[1])),sw*.68,Math.abs(Y(b[1])-Y(0))||1.5); text(b[0],x+sw*.34,by+bh+fs,{s:fs*.82,c:b[2]}); text(String(Math.round(b[1])),x+sw*.34,(b[1]>=0 ? Y(b[1])-fs*.8 : Y(b[1])+fs*.8),{s:fs*.85}); });
+  text(`ψw = ψs + ψp = ${Math.round(a.s)} + ${Math.round(a.p)} = ${Math.round(a.w)} kPa`,bx+bw/2,by+bh+fs*2.7,{s:fs*1.05});
+  /* experiment graph */
+  const gx = nar ? W*.16 : W*.72, gy = nar ? H*.62 : H*.16, gw = nar ? W*.76 : W*.24, gh = nar ? H*.25 : H*.6, GX = v => gx+v/.8*gw, GY = v => gy+gh/2-v/27*gh/2;
+  c.fillStyle = TH.dark ? 'rgba(0,0,0,.28)' : 'rgba(255,255,255,.7)'; rr(gx-fs*3.2,gy-fs*2,gw+fs*4,gh+fs*4.6,12); c.fill();
+  text('Potato tissue: change in mass / %',gx+gw/2,gy-fs,{s:fs,halo:false});
+  c.strokeStyle = TH.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(gx,gy); c.lineTo(gx,gy+gh); c.moveTo(gx,GY(0)); c.lineTo(gx+gw,GY(0)); c.stroke();
+  for (const v of [0,.2,.4,.6,.8]) text(String(v),GX(v),gy+gh+fs*.9,{s:fs*.82,c:TH.ink2,w:500,halo:false}); for (const v of [20,10,-10,-20]) text((v>0 ? '+' : '')+v,gx-4,GY(v),{s:fs*.82,al:'right',c:TH.ink2,w:500,halo:false});
+  text('sucrose concentration / mol dm⁻³',gx+gw/2,gy+gh+fs*2.2,{s:fs*.85,c:TH.ink2,w:500,halo:false});
+  if (Q.pts.length>1){ c.strokeStyle = WAT; c.lineWidth = 2; c.beginPath(); Q.pts.forEach((p,k)=>c[k?'lineTo':'moveTo'](GX(p.c),GY(p.m))); c.stroke(); }
+  const f = fit(); if (f){ c.strokeStyle = TH.warn; c.lineWidth = 2; c.setLineDash([3,3]); c.beginPath(); c.moveTo(GX(f.x0),GY(0)-fs*1.6); c.lineTo(GX(f.x0),GY(0)+5); c.stroke(); c.setLineDash([]); text('isotonic ≈ '+f.x0.toFixed(2),clamp(GX(f.x0),gx+fs*4,gx+gw-fs*4),GY(0)-fs*2.3,{s:fs*.9,c:TH.warn}); }
+  for (const p of Q.pts){ c.strokeStyle = TH.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(GX(p.c),GY(p.m-p.se*2)); c.lineTo(GX(p.c),GY(p.m+p.se*2)); c.stroke(); c.fillStyle = WAT; c.beginPath(); c.arc(GX(p.c),GY(p.m),5,0,6.3); c.fill(); c.stroke(); }
+  c.strokeStyle = WAT; c.lineWidth = 2; c.beginPath(); c.arc(GX(S.c),GY(massPct(Q.V)),7,0,6.3); c.stroke();
+}
+function draw(){ c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H); if (!W) return; c.lineJoin = 'round'; (S.proc==='osm' ? drawOsm : S.proc==='cell' ? drawCell : drawWp)(); }
+
+/* ================= interface ================= */
+const $ = q => document.querySelector(q);
+const EVENTS = {
+  osm:[['solv','Solvation: water surrounds the solute'],['nomem','No membrane: solute just diffuses'],['net','Net water movement to the hypertonic side'],['lvl','Volumes change'],['iso','Isotonic: dynamic equilibrium']],
+  cell:[['iso','Isotonic: no net movement'],['hypo','Hypotonic outside: water enters'],['burst','No wall: the cell bursts (cytolysis)'],['cren','Hypertonic outside: crenation'],['cv','Contractile vacuole pumps water out'],['turg','Cell wall: turgid, not burst'],['plas','Plasmolysis in a hypertonic solution']],
+  wp:[['sol','Solutes lower the solute potential'],['move','Water moves from higher to lower ψ'],['pp','Pressure potential rises against the wall'],['eq','Equilibrium: ψ inside = ψ outside'],['plas','Plasmolysed: pressure potential is zero'],['five','Five concentrations recorded'],['isot','Isotonic concentration found from the graph']]
+};
+const st = () => S.proc==='osm' ? O : S.proc==='cell' ? K : Q;
+function buildUI(){
+  $('#tools').innerHTML = TOOLS[S.proc].map(t=>`<button class="tool" data-t="${t[0]}" style="--c:${t[3]}" aria-pressed="${S.tools[t[0]]}"><i>${S.tools[t[0]] ? '✓' : '+'}</i><span>${t[1]}<small>${t[2]}</small></span></button>`).join('');
+  const o = [], B = (k,l,on) => `<button class="opt" data-o="${k}" aria-pressed="${on}">${l}</button>`, A = (k,l) => `<button class="opt act" data-o="${k}">${l}</button>`;
+  if (S.proc==='osm'){ o.push(`<label class="rng">Solute, left <b id="oL">${S.nL}</b><input id="nL" type="range" min="0" max="12" step="1" value="${S.nL}"></label>`); o.push(`<label class="rng">Solute, right <b id="oR">${S.nR}</b><input id="nR" type="range" min="0" max="12" step="1" value="${S.nR}"></label>`); o.push(B('ions','Ions (NaCl)',S.ions)); o.push(B('glu','Glucose',!S.ions)); }
+  if (S.proc==='cell'){ o.push(`<label class="rng">Solute outside <b id="oE">${S.ext.toFixed(2)}</b><input id="ext" type="range" min="0" max="0.6" step="0.02" value="${S.ext}"></label>`); o.push(A('e0','Pure water')); o.push(A('e3','Isotonic')); o.push(A('e6','Concentrated')); }
+  if (S.proc==='wp'){ o.push(`<label class="rng">Sucrose outside <b id="oC">${S.c.toFixed(2)}</b><input id="conc" type="range" min="0" max="0.8" step="0.05" value="${S.c}"></label>`); o.push(`<button class="btn pri" data-o="rec">Record this result</button>`); o.push(A('clr','Clear results')); }
+  $('#opts').innerHTML = o.join('');
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.p===S.proc)));
+  $('#all').textContent = TOOLS[S.proc].every(t=>S.tools[t[0]]) ? 'Remove everything' : 'Add everything';
+  $('#play').textContent = S.playing ? 'Pause' : 'Play';
+  refresh();
+}
+let lastWhy = '', lastEv = '';
+function refresh(){
+  const w = S.proc==='osm' ? whyOsm() : S.proc==='cell' ? whyCell() : whyWp();
+  if (w!==lastWhy){ lastWhy = w; $('#why').innerHTML = `<span>${w}</span>`; }
+  const ev = st().ev, list = EVENTS[S.proc], key = S.proc+list.map(e=>ev[e[0]] ? 1 : 0).join('');
+  if (key!==lastEv){ lastEv = key; $('#check').innerHTML = list.map(e=>`<li class="${ev[e[0]] ? 'done' : ''}">${e[1]}</li>`).join(''); $('#prog').innerHTML = `Key events seen: <b>${list.filter(e=>ev[e[0]]).length} of ${list.length}</b>`; }
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+  if (d.p) S.proc = d.p;
+  else if (d.t) S.tools[d.t] = !S.tools[d.t];
+  else if (d.o==='ions') S.ions = true; else if (d.o==='glu') S.ions = false;
+  else if (d.o==='e0') S.ext = 0; else if (d.o==='e3') S.ext = .3; else if (d.o==='e6') S.ext = .6;
+  else if (d.o==='rec') record(); else if (d.o==='clr') Q.pts = [];
+  else if (b.id==='all'){ const on = !TOOLS[S.proc].every(t=>S.tools[t[0]]); TOOLS[S.proc].forEach(t=>{ S.tools[t[0]] = on; }); }
+  else if (b.id==='play') S.playing = !S.playing;
+  else if (b.id==='reset'){ if (S.proc==='osm') resetOsm(); else if (S.proc==='cell') resetCell(); else resetWp(); }
+  else return;
+  buildUI();
+});
+document.addEventListener('input', e=>{ const v = +e.target.value, id = e.target.id;
+  if (id==='speed') S.speed = v;
+  else if (id==='nL'||id==='nR'){ S[id] = v; $(id==='nL' ? '#oL' : '#oR').textContent = v; seedSol(); }
+  else if (id==='ext'){ S.ext = v; $('#oE').textContent = v.toFixed(2); }
+  else if (id==='conc'){ S.c = v; $('#oC').textContent = v.toFixed(2); } });
+function resize(){ const r = cv.getBoundingClientRect(); if (!r.width) return; dpr = Math.min(window.devicePixelRatio||1,2); W = r.width; H = r.height; cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
+let tPrev = 0, uiT = 0;
+const advance = dt => { if (S.proc==='osm') stepOsm(dt); else if (S.proc==='cell') stepCell(dt); else stepWp(dt); };
+function loop(now){ requestAnimationFrame(loop); const dt = Math.min(.05,(now-tPrev)/1000||0); tPrev = now; if (S.playing) advance(dt*S.speed); draw(); uiT += dt; if (uiT>.2){ uiT = 0; refresh(); } }
+theme(); resetOsm(); resetCell(); resetWp(); buildUI(); resize();
+new ResizeObserver(resize).observe(cv);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', theme);
+new MutationObserver(theme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(theme);
+requestAnimationFrame(loop);
+window.__w = {S, run(sec){ for (let k=0;k<sec*60;k++) advance(1/60); refresh(); }, get O(){ return O; }, get K(){ return K; }, get Q(){ return Q; }, fit, record};
+</script>
+</body>
+</html>
